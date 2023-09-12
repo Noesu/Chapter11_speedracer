@@ -7,57 +7,92 @@ import random
 games.init(screen_width=480, screen_height=640, fps=50)
 
 
-class Wind(games.Sprite):
-    wind1 = games.load_image("wind4.png", transparent=True)
-    wind2 = games.load_image("wind5.png", transparent=True)
-    wind3 = games.load_image("wind6.png", transparent=True)
-    time_to_spawn = 10
+class GameObject(object):
+    score = games.Text(value=0, size=25, color=color.red, top=5, right=games.screen.width - 10, is_collideable=False)
+    games.screen.add(score)
 
     def __init__(self):
-        t = random.randint(1, 3)
-        wind_x_pos = random.randint(0, 639)
-        wind_y_speed = random.randint(1, 3)
-        if t == 1:
-            super(Wind, self).__init__(image=self.wind1, y=0, x=wind_x_pos,
-                                       dy=wind_y_speed, is_collideable=False)
-        if t == 2:
-            super(Wind, self).__init__(image=self.wind2, y=0, x=wind_x_pos,
-                                       dy=wind_y_speed, is_collideable=False)
-        if t == 3:
-            super(Wind, self).__init__(image=self.wind3, y=0, x=wind_x_pos,
-                                       dy=wind_y_speed, is_collideable=False)
+        player = Player()
+        games.screen.add(player)
+        wind_element = Wind(1)
+        games.screen.add(wind_element)
+
+
+class Wind(games.Sprite):
+    WIND1, WIND2, WIND3 = 1, 2, 3
+    images = {WIND1: games.load_image("wind1.png"),
+              WIND2: games.load_image("wind2.png"),
+              WIND3: games.load_image("wind3.png")}
+
+    time_to_spawn = 10
+
+    def __init__(self, wind_type):
+        super(Wind, self).__init__(image=Wind.images[wind_type],
+                                   y=0,
+                                   x=random.randint(0, 639),
+                                   dy=random.choice([1, 2, 3]),
+                                   is_collideable=False)
 
     def update(self):
         self.time_to_spawn -= 1
         if self.time_to_spawn == 0:
-            new_element = Wind()
-            games.screen.add(new_element)
+            wind_type = random.choice([Wind.WIND1, Wind.WIND2, Wind.WIND3])
+            new_wind_element = Wind(wind_type=wind_type)
+            games.screen.add(new_wind_element)
         if self.y >= games.screen.height:
             self.destroy()
 
 
 class Asteroid(games.Sprite):
-    time_to_spawn = 100
-    image = games.load_image("spaceMeteors_r001.png",
-                             transparent=True)
+    TYPE1, TYPE2, TYPE3, TYPE4 = 1, 2, 3, 4
+    images = {TYPE1: games.load_image("asteroid1.png"),
+              TYPE2: games.load_image("asteroid2.png"),
+              TYPE3: games.load_image("asteroid3.png"),
+              TYPE4: games.load_image("asteroid4.png")}
 
-    def __init__(self):
-        ast_x_pos = random.randint(0, 639)
-        ast_y_speed = random.randint(1, 3)
-        super(Asteroid, self).__init__(image=Asteroid.image,
-                                       x=ast_x_pos,
+    def __init__(self, ast_type):
+        super(Asteroid, self).__init__(image=Asteroid.images[ast_type],
+                                       x=random.randint(0, 639),
                                        y=0,
-                                       dy=ast_y_speed,
+                                       dy=random.randint(1, 3),
                                        is_collideable=True)
 
     def update(self):
         if self.top >= games.screen.height:
             self.destroy()
-            # Player.score += 10
-            # print(Player.score)
 
     def handle_hit(self):
         self.destroy()
+        GameObject.score.value += 10
+
+    def receive_upgrade(self):
+        return
+
+
+class Upgrade(games.Sprite):
+    image = games.load_image("missle1.png", transparent=True)
+
+    def __init__(self):
+        x_pos = random.randint(0, 639)
+        y_speed = 1
+        super(Upgrade, self).__init__(image=Upgrade.image,
+                                      x=x_pos,
+                                      y=0,
+                                      dy=y_speed,
+                                      is_collideable=True)
+
+    def update(self):
+        if self.top >= games.screen.height:
+            self.destroy()
+        self.check_upgrade()
+
+    def handle_hit(self):
+        return
+
+    def check_upgrade(self):
+        for upgrade_object in self.overlapping_sprites:
+            upgrade_object.receive_upgrade()
+            self.destroy()
 
 
 class Player(games.Sprite):
@@ -65,17 +100,12 @@ class Player(games.Sprite):
 
     def __init__(self):
         super(Player, self).__init__(image=Player.image,
-                                     x=games.mouse.x,
-                                     y=games.mouse.y,
+                                     x=games.screen.width/2,
+                                     y=games.screen.height/2,
                                      is_collideable=True)
         self.reload_timer = 0
         self.time_to_spawn_asteroid = 50
-        self.score = games.Text(value=0,
-                                size=25,
-                                color=color.red,
-                                top=5,
-                                right=games.screen.width - 10)
-        games.screen.add(self.score)
+        self.last_upgrade = 0
 
     def update(self):
         """ Move to mouse x position. """
@@ -95,25 +125,37 @@ class Player(games.Sprite):
             self.shoot()
 
         self.time_to_spawn_asteroid -= 1
-        print(self.time_to_spawn_asteroid)
+
         if self.time_to_spawn_asteroid == 0:
             self.time_to_spawn_asteroid = 50
-            new_asteroid = Asteroid()
+            asteroid_type = random.choice([Asteroid.TYPE1, Asteroid.TYPE2, Asteroid.TYPE3, Asteroid.TYPE4])
+            new_asteroid = Asteroid(ast_type=asteroid_type)
             games.screen.add(new_asteroid)
+
+        if GameObject.score.value % 100 == 0 and GameObject.score.value != self.last_upgrade:
+            upgrade_object = Upgrade()
+            self.last_upgrade = GameObject.score.value
+            games.screen.add(upgrade_object)
+            GameObject.score.value += 50
 
     def shoot(self):
         if self.reload_timer == 0:
-            shot = Missle(self.x, self.y-55)
+            shot = Missle(self.x, self.y - 55)
             self.reload_timer = 50
             games.screen.add(shot)
+            print(Missle.speed)
 
     def handle_hit(self):
         return
 
+    @staticmethod
+    def receive_upgrade():
+        Missle.speed -= 1
+        Missle.image = games.load_image("missle2.png")
+
 
 class Missle(games.Sprite):
-
-    image = games.load_image("spaceMissiles_001.png")
+    image = games.load_image("missle1.png")
     speed = -5
 
     def __init__(self, x, y):
@@ -131,22 +173,18 @@ class Missle(games.Sprite):
             space_object.handle_hit()
             self.destroy()
 
+    def receive_upgrade(self):
+        return
+
 
 def main():
-    space_background = games.load_image("seamless space.PNG",
-                                        transparent=False)
+    games.load_sound("Space_walk.mp3").play()
+    space_background = games.load_image("seamless space.PNG", transparent=False)
     games.screen.background = space_background
 
     games.mouse.is_visible = False
 
-    wind_element = Wind()
-    games.screen.add(wind_element)
-
-    asteroid_element = Asteroid()
-    games.screen.add(asteroid_element)
-
-    player = Player()
-    games.screen.add(player)
+    GameObject()
 
     games.screen.mainloop()
 
