@@ -1,10 +1,70 @@
 # Напишите игру, в которой на персонаж, управляемый игроком с помощью мыши, сверху
 # будут падать какие-нибудь тяжелые объекты, а он должен будет уворачиваться.
-
+import pygame.time
 from superwires import games, color
 import random
 
 games.init(screen_width=480, screen_height=640, fps=50)
+
+
+class HiScores(object):
+
+    def __init__(self):
+        line = 200
+        hiscores_title = games.Message(value="HIGH SORES",
+                                       size=80,
+                                       color=color.blue,
+                                       x=games.screen.width / 2,
+                                       y=100,
+                                       lifetime=150,
+                                       is_collideable=False)
+        games.screen.add(hiscores_title)
+        player_hiscores = [("ТАНЯ", 999999),
+                           ("ЯНА", 1000),
+                           ("ПЕТР", 600),
+                           ("ИВАН", 500),
+                           ("МАРЬЯ", 250)]
+        for name, score in player_hiscores:
+            player_name = games.Message(value=name,
+                                        size=50,
+                                        color=color.blue,
+                                        x=games.screen.width / 4,
+                                        y=line,
+                                        lifetime=150,
+                                        is_collideable=False)
+            games.screen.add(player_name)
+            player_score = games.Message(value=score,
+                                         size=50,
+                                         color=color.blue,
+                                         x=games.screen.width * 0.75,
+                                         y=line,
+                                         lifetime=150,
+                                         is_collideable=False)
+            games.screen.add(player_score)
+            line += 80
+        pygame.time.wait(200)
+        GameObject()
+
+
+class GameTitle(games.Sprite):
+    image = games.load_image("title.png", transparent=True)
+
+    def __init__(self):
+        super(GameTitle, self).__init__(image=GameTitle.image,
+                                        x=games.screen.width / 2,
+                                        y=320,
+                                        is_collideable=False)
+        games.mouse.is_visible = True
+
+    def update(self):
+        if self.y <= 100:
+            self.destroy()
+            HiScores()
+        if games.mouse.is_pressed(0) and self.y == 320:
+            self.move_title()
+
+    def move_title(self):
+        self.dy -= 3
 
 
 class GameObject(object):
@@ -12,6 +72,7 @@ class GameObject(object):
     games.screen.add(score)
 
     def __init__(self):
+        games.mouse.is_visible = False
         player = Player()
         games.screen.add(player)
         wind_element = Wind(1)
@@ -79,6 +140,9 @@ class Asteroid(games.Sprite):
     def handle_missle_hit(self, missle_power):
         self.strength_value -= missle_power
         if self.strength_value <= 0:
+            score_up = games.Message(value="+10", size=15, color=color.green, x=self.x, y=self.y,
+                                     lifetime=50, is_collideable=False)
+            games.screen.add(score_up)
             self.destroy()
         return True
 
@@ -109,6 +173,9 @@ class Upgrade(games.Sprite):
         for space_object in self.overlapping_sprites:
             upgrade_received = space_object.receive_upgrade(self.upgrade_value)
             if upgrade_received:
+                upgrade_up = games.Message(value="Missle speed upgrade", size=15, color=color.yellow, x=self.x, y=self.y,
+                                           lifetime=50, is_collideable=False)
+                games.screen.add(upgrade_up)
                 self.sound.play()
                 self.destroy()
 
@@ -130,6 +197,9 @@ class Player(games.Sprite):
                                      x=games.screen.width / 2,
                                      y=games.screen.height / 2,
                                      is_collideable=True)
+        self.defence = games.Text(value=self.defence, size=25, color=color.red, top=25, right=games.screen.width - 10,
+                                  is_collideable=False)
+        games.screen.add(self.defence)
         self.reload_timer = 0
         self.time_to_spawn_asteroid = 50
         self.last_upgrade = 0
@@ -148,7 +218,6 @@ class Player(games.Sprite):
         # Weapon control
         if games.mouse.is_pressed(0):
             self.launch_missle()
-            # print(GameObject.score.value)
 
         # Asteroid generator
         self.time_to_spawn_asteroid -= 1
@@ -163,7 +232,6 @@ class Player(games.Sprite):
             upgrade_object = Upgrade()
             self.last_upgrade = GameObject.score.value
             games.screen.add(upgrade_object)
-            # GameObject.score.value += 50
 
     def launch_missle(self):
         if self.reload_timer == 0:
@@ -172,8 +240,8 @@ class Player(games.Sprite):
             games.screen.add(shot)
 
     def handle_collision(self, asteroid_strength):
-        self.defence -= asteroid_strength
-        if self.defence <= 0:
+        self.defence.value -= asteroid_strength
+        if self.defence.value <= 0:
             self.destroy()
             print("Game Over!")
         return True
@@ -218,15 +286,17 @@ class Missle(games.Sprite):
     def handle_collision(self, strength_value):
         return False
 
+    def handle_missle_hit(self, *missle_power):
+        return False
+
 
 def main():
     games.load_sound("Space_walk.mp3").play()
     space_background = games.load_image("seamless space.PNG", transparent=False)
     games.screen.background = space_background
 
-    games.mouse.is_visible = False
-
-    GameObject()
+    game_title = GameTitle()
+    games.screen.add(game_title)
 
     games.screen.mainloop()
 
