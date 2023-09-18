@@ -122,6 +122,7 @@ class Wind(games.Sprite):
                                    is_collideable=False)
 
     def update(self):
+        # Instance loop:
         if Game.running:
             self.time_to_spawn -= 1
             if self.time_to_spawn == 0:
@@ -156,6 +157,11 @@ class Asteroid(games.Sprite):
         self.asteroid_bonus *= ast_type
 
     def update(self):
+        """Instance loop.
+        During the game destroying asteroids, flying off the screen and calls
+        their collision check with other objects.
+        Destroys all asteroids if game stopped"""
+
         if Game.running:
             if self.top >= games.screen.height:
                 self.destroy()
@@ -164,6 +170,10 @@ class Asteroid(games.Sprite):
             self.destroy()
 
     def check_collision(self):
+        """Checks collisions with other objects.
+        Sending to every colliding object self strength value and destroying asteroid in case
+        this object reporting of taking damage.
+        Before destroying spawning explosion animation with same trajectory"""
         for space_object in self.overlapping_sprites:
             collision_confirmed = space_object.handle_collision(self.strength_value)
             if collision_confirmed:
@@ -172,9 +182,20 @@ class Asteroid(games.Sprite):
 
     @staticmethod
     def receive_upgrade(*upgrade_value):
+        """Reports of refusal of upgrade receiving"""
         return False
 
     def handle_missle_hit(self, missle_power):
+        """
+        Notifies of taking damage to the collided missle
+        In case received missle power is higher than asteroid strength
+        - increasing game score on the pre-set asteroid value bonus
+        - displaying asteroid value bonus on the asteroid coordinates for 1 second
+        - calling asteroid explosion animation with own trajectory
+        - playing asteroid explosion sound and destroying asteroid
+        In other cases decreasing asteroid strength value on the missle power value
+        and playing asteroid hit sound.
+        """
         if self.strength_value - missle_power <= 0:
             Game.score.value += self.asteroid_bonus
             score_up = games.Message(value=self.asteroid_bonus,
@@ -194,6 +215,16 @@ class Asteroid(games.Sprite):
         return True
 
     def handle_blast_hit(self, laser_power):
+        """
+        Notifies of taking damage to the collided laser element
+        In case received laser power is higher than asteroid strength
+        - increasing game score on the pre-set asteroid value bonus
+        - displaying asteroid value bonus on the asteroid coordinates for 1 second
+        - calling asteroid explosion animation with own trajectory
+        - playing asteroid explosion sound and destroying asteroid
+        In other cases decreasing asteroid strength value on the laser power value
+        and playing asteroid hit sound.
+        """
         if self.strength_value - laser_power <= 0:
             Game.score.value += self.asteroid_bonus
             score_up = games.Message(value=self.asteroid_bonus,
@@ -213,10 +244,13 @@ class Asteroid(games.Sprite):
         return True
 
     def handle_collision(self, strength_value):
+        """Reports of refusal of collision with other asteroids"""
         return False
 
 
 class AsteroidExplosion(games.Animation):
+    """Spawns asteroid explosion animation according to received trajectory
+    and playing asteroid explosion sound"""
     sound = games.load_sound("ast_crash1.wav")
     images = ['asteroid_crash_1.png',
               'asteroid_crash_2.png',
@@ -457,15 +491,19 @@ class Missle(games.Sprite):
                 self.destroy()
 
     def receive_upgrade(self, *upgrade_value):
+        # Can receive upgrade
         return False
 
     def handle_collision(self, strength_value):
+        # Can be destroyed with asteroid
         return False
 
     def handle_missle_hit(self, *missle_power):
+        # Can be destroyed with other missle
         return False
 
     def handle_blast_hit(self, *laser_power):
+        # Can be destroyed with laser
         return False
 
 
