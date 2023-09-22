@@ -1,15 +1,119 @@
 # Напишите игру, в которой на персонаж, управляемый игроком с помощью мыши, сверху
 # будут падать какие-нибудь тяжелые объекты, а он должен будет уворачиваться.
-import pygame.time
 from superwires import games, color
 import random
 
 games.init(screen_width=480, screen_height=640, fps=50)
 
 
-class HiScores(object):
+class GameMenu(games.Sprite):
+    game_name_logo = games.load_image("title.png", transparent=True)
+    # game_over_logo = games.load_image("gameover.png", transparent=True)
+
+    games.mouse.is_visible = True
+
+    player_hiscores = [("ТАНЯ", 999999),
+                       ("ЯНА", 1000),
+                       ("ПЕТР", 600),
+                       ("ИВАН", 500),
+                       ("МАРЬЯ", 250)]
+
+    menu_screen = False
+    logo_screen = True
+
+    menu_item_new_game = games.Text(value="NEW GAME",
+                                    size=80,
+                                    color=color.red,
+                                    y=200,
+                                    x=games.screen.width / 2,
+                                    is_collideable=True)
+    menu_item_hiscores = games.Text(value="HIGH SCORES",
+                                    size=80,
+                                    color=color.red,
+                                    y=300,
+                                    x=games.screen.width / 2,
+                                    is_collideable=True)
+    menu_item_settings = games.Text(value="SETTINGS",
+                                    size=80,
+                                    color=color.red,
+                                    y=400,
+                                    x=games.screen.width / 2,
+                                    is_collideable=True)
+    menu_item_quit = games.Text(value="QUIT GAME",
+                                size=80,
+                                color=color.red,
+                                y=500,
+                                x=games.screen.width / 2,
+                                is_collideable=True)
 
     def __init__(self):
+        super(GameMenu, self).__init__(image=GameMenu.game_name_logo,
+                                       x=games.screen.width / 2,
+                                       y=320,
+                                       is_collideable=False)
+
+    def update(self):
+        if self.logo_screen:
+            if games.mouse.is_pressed(0) and self.y == 320:
+                self.dy -= 3
+            if self.y <= 50:
+                self.dy = 0
+                self.logo_screen = False
+                self.display_menu()
+        if self.menu_screen:
+            if GameMenu.menu_item_new_game.top <= games.mouse.y <= GameMenu.menu_item_new_game.bottom and \
+                    GameMenu.menu_item_new_game.left <= games.mouse.x <= GameMenu.menu_item_new_game.right and \
+                    games.mouse.is_pressed(0):
+                self.destroy()
+                self.hide_menu()
+                Game()
+            elif GameMenu.menu_item_hiscores.top <= games.mouse.y <= GameMenu.menu_item_hiscores.bottom and \
+                    GameMenu.menu_item_hiscores.left <= games.mouse.x <= GameMenu.menu_item_hiscores.right and \
+                    games.mouse.is_pressed(0):
+                self.hide_menu()
+                self.display_hiscores()
+            elif GameMenu.menu_item_settings.top <= games.mouse.y <= GameMenu.menu_item_settings.bottom and \
+                    GameMenu.menu_item_settings.left <= games.mouse.x <= GameMenu.menu_item_settings.right and \
+                    games.mouse.is_pressed(0):
+                # Settings()
+                print("SETTINGS")
+            elif GameMenu.menu_item_quit.top <= games.mouse.y <= GameMenu.menu_item_quit.bottom and \
+                    GameMenu.menu_item_quit.left <= games.mouse.x <= GameMenu.menu_item_quit.right and \
+                    games.mouse.is_pressed(0):
+                games.screen.quit()
+
+    def display_menu(self):
+        self.menu_screen = True
+        games.screen.add(self.menu_item_new_game)
+        games.screen.add(self.menu_item_hiscores)
+        games.screen.add(self.menu_item_settings)
+        games.screen.add(self.menu_item_quit)
+
+    def hide_menu(self):
+        games.screen.remove(self.menu_item_new_game)
+        games.screen.remove(self.menu_item_hiscores)
+        games.screen.remove(self.menu_item_settings)
+        games.screen.remove(self.menu_item_quit)
+        self.menu_screen = False
+
+    # @staticmethod
+    # def display_menu():
+    #     GameMenu.menu_screen = True
+    #     games.screen.add(GameMenu.menu_item_new_game)
+    #     games.screen.add(GameMenu.menu_item_hiscores)
+    #     games.screen.add(GameMenu.menu_item_settings)
+    #     games.screen.add(GameMenu.menu_item_quit)
+    #
+    # @staticmethod
+    # def hide_menu():
+    #     games.screen.remove(GameMenu.menu_item_new_game)
+    #     games.screen.remove(GameMenu.menu_item_hiscores)
+    #     games.screen.remove(GameMenu.menu_item_settings)
+    #     games.screen.remove(GameMenu.menu_item_quit)
+    #     GameMenu.menu_screen = False
+
+    def display_hiscores(self):
+        self.hide_menu()
         line = 200
         hiscores_title = games.Message(value="HIGH SCORES",
                                        size=80,
@@ -17,14 +121,10 @@ class HiScores(object):
                                        x=games.screen.width / 2,
                                        y=100,
                                        lifetime=150,
+                                       after_death=self.display_menu(),
                                        is_collideable=False)
         games.screen.add(hiscores_title)
-        player_hiscores = [("ТАНЯ", 999999),
-                           ("ЯНА", 1000),
-                           ("ПЕТР", 600),
-                           ("ИВАН", 500),
-                           ("МАРЬЯ", 250)]
-        for name, score in player_hiscores:
+        for name, score in self.player_hiscores:
             player_name = games.Message(value=name,
                                         size=50,
                                         color=color.blue,
@@ -42,29 +142,12 @@ class HiScores(object):
                                          is_collideable=False)
             games.screen.add(player_score)
             line += 80
-        pygame.time.wait(200)
-        Game()
+        # self.display_menu()
 
-
-class GameTitle(games.Sprite):
-    image = games.load_image("title.png", transparent=True)
-
-    def __init__(self):
-        super(GameTitle, self).__init__(image=GameTitle.image,
-                                        x=games.screen.width / 2,
-                                        y=320,
-                                        is_collideable=False)
-        games.mouse.is_visible = True
-
-    def update(self):
-        if self.y <= 100:
-            self.destroy()
-            HiScores()
-        if games.mouse.is_pressed(0) and self.y == 320:
-            self.move_title()
-
-    def move_title(self):
-        self.dy -= 3
+    def start_new_game(self):
+        self.hide_menu()
+        self.destroy()
+        # Game()
 
 
 class Game(object):
@@ -391,7 +474,6 @@ class Player(games.Sprite):
             Missle.sound.play()
             self.reload_timer = 50
             games.screen.add(shot)
-            print(Game.running)
 
     def activate_laser(self):
         laser1 = Laser(self.x - 20, self.y - 55)
@@ -573,8 +655,8 @@ def main():
     space_background = games.load_image("seamless space.PNG", transparent=False)
     games.screen.background = space_background
 
-    game_title = GameTitle()
-    games.screen.add(game_title)
+    game_menu = GameMenu()
+    games.screen.add(game_menu)
 
     games.screen.mainloop()
 
