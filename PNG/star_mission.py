@@ -8,7 +8,6 @@ games.init(screen_width=480, screen_height=640, fps=50)
 
 class GameMenu(games.Sprite):
     game_name_logo = games.load_image("title.png", transparent=True)
-    # game_over_logo = games.load_image("gameover.png", transparent=True)
 
     games.mouse.is_visible = True
 
@@ -26,25 +25,25 @@ class GameMenu(games.Sprite):
                                     color=color.red,
                                     y=200,
                                     x=games.screen.width / 2,
-                                    is_collideable=True)
+                                    is_collideable=False)
     menu_item_hiscores = games.Text(value="HIGH SCORES",
                                     size=80,
                                     color=color.red,
                                     y=300,
                                     x=games.screen.width / 2,
-                                    is_collideable=True)
+                                    is_collideable=False)
     menu_item_settings = games.Text(value="SETTINGS",
                                     size=80,
                                     color=color.red,
                                     y=400,
                                     x=games.screen.width / 2,
-                                    is_collideable=True)
+                                    is_collideable=False)
     menu_item_quit = games.Text(value="QUIT GAME",
                                 size=80,
                                 color=color.red,
                                 y=500,
                                 x=games.screen.width / 2,
-                                is_collideable=True)
+                                is_collideable=False)
 
     def __init__(self):
         super(GameMenu, self).__init__(image=GameMenu.game_name_logo,
@@ -66,7 +65,8 @@ class GameMenu(games.Sprite):
                     games.mouse.is_pressed(0):
                 self.destroy()
                 self.hide_menu()
-                Game()
+                player = Player()
+                games.screen.add(player)
             elif GameMenu.menu_item_hiscores.top <= games.mouse.y <= GameMenu.menu_item_hiscores.bottom and \
                     GameMenu.menu_item_hiscores.left <= games.mouse.x <= GameMenu.menu_item_hiscores.right and \
                     games.mouse.is_pressed(0):
@@ -142,51 +142,6 @@ class GameMenu(games.Sprite):
                                          is_collideable=False)
             games.screen.add(player_score)
             line += 80
-        # self.display_menu()
-
-    def start_new_game(self):
-        self.hide_menu()
-        self.destroy()
-        # Game()
-
-
-class Game(object):
-    score_text = games.Text(value="SCORE",
-                            size=25,
-                            color=color.red,
-                            top=5,
-                            right=games.screen.width - 100,
-                            is_collideable=False)
-    games.screen.add(score_text)
-    score = games.Text(value=0,
-                       size=25,
-                       color=color.red,
-                       top=5,
-                       right=games.screen.width - 10,
-                       is_collideable=False)
-    games.screen.add(score)
-    defence_text = games.Text(value="DEFENCE",
-                              size=25,
-                              color=color.red,
-                              top=25,
-                              right=games.screen.width - 100,
-                              is_collideable=False)
-    games.screen.add(defence_text)
-    laser_text = games.Text(value="LASER CHARGE",
-                            size=25,
-                            color=color.red,
-                            top=45,
-                            right=games.screen.width - 100,
-                            is_collideable=False)
-    games.screen.add(laser_text)
-    running = True
-
-    def __init__(self):
-        games.mouse.is_visible = False
-        player = Player()
-        games.screen.add(player)
-        wind_element = Wind(1)
-        games.screen.add(wind_element)
 
 
 class Wind(games.Sprite):
@@ -206,7 +161,7 @@ class Wind(games.Sprite):
 
     def update(self):
         # Instance loop:
-        if Game.running:
+        if Player.on_mission:
             self.time_to_spawn -= 1
             if self.time_to_spawn == 0:
                 wind_type = random.choice([Wind.WIND1, Wind.WIND2, Wind.WIND3])
@@ -245,7 +200,7 @@ class Asteroid(games.Sprite):
         their collision check with other objects.
         Destroys all asteroids if game stopped"""
 
-        if Game.running:
+        if Player.on_mission:
             if self.top >= games.screen.height:
                 self.destroy()
             self.check_collision()
@@ -280,7 +235,9 @@ class Asteroid(games.Sprite):
         and playing asteroid hit sound.
         """
         if self.strength_value - missle_power <= 0:
-            Game.score.value += self.asteroid_bonus
+            Player.score.value += self.asteroid_bonus
+            # print(Player.score)
+            # print(self.asteroid_bonus)
             score_up = games.Message(value=self.asteroid_bonus,
                                      size=15,
                                      color=color.green,
@@ -309,7 +266,7 @@ class Asteroid(games.Sprite):
         and playing asteroid hit sound.
         """
         if self.strength_value - laser_power <= 0:
-            Game.score.value += self.asteroid_bonus
+            Player.score.value += self.asteroid_bonus
             score_up = games.Message(value=self.asteroid_bonus,
                                      size=15,
                                      color=color.green,
@@ -414,9 +371,40 @@ class Player(games.Sprite):
     object_upgrade = 0
     reload_timer = 50
     laser_charge = 0
+    # score = 0
     hit_sound = games.load_sound("player_hit1.wav")
+    on_mission = False
+    score = games.Text(value=0,
+                       size=25,
+                       color=color.red,
+                       top=5,
+                       right=games.screen.width - 10,
+                       is_collideable=False)
+    games.screen.add(score)
+    score_text = games.Text(value="SCORE",
+                            size=25,
+                            color=color.red,
+                            top=5,
+                            right=games.screen.width - 100,
+                            is_collideable=False)
+    games.screen.add(score_text)
+    defence_text = games.Text(value="DEFENCE",
+                              size=25,
+                              color=color.red,
+                              top=25,
+                              right=games.screen.width - 100,
+                              is_collideable=False)
+    games.screen.add(defence_text)
+    laser_text = games.Text(value="LASER CHARGE",
+                            size=25,
+                            color=color.red,
+                            top=45,
+                            right=games.screen.width - 100,
+                            is_collideable=False)
+    games.screen.add(laser_text)
 
     def __init__(self):
+        games.mouse.is_visible = False
         super(Player, self).__init__(image=Player.image,
                                      x=games.screen.width / 2,
                                      y=games.screen.height / 2,
@@ -435,9 +423,15 @@ class Player(games.Sprite):
                                        right=games.screen.width - 10,
                                        is_collideable=False)
         games.screen.add(self.laser_charge)
+
+
         self.reload_timer = 50
         self.time_to_spawn_asteroid = 50
         self.last_upgrade = 0
+        Player.on_mission = True
+
+        start_wind = Wind(1)
+        games.screen.add(start_wind)
 
     def update(self):
         # Spaceship orientation
@@ -464,8 +458,10 @@ class Player(games.Sprite):
             self.spawn_asteroid()
 
         # Upgrade generator
-        if Game.score.value % 100 == 0 and Game.score.value != self.last_upgrade:
-            self.last_upgrade = Game.score.value
+        # print(Player.score)
+        # print("Player.score % 100", Player.score % 100)
+        if Player.score.value % 100 == 0 and Player.score.value != self.last_upgrade:
+            self.last_upgrade = Player.score.value
             self.spawn_upgrade()
 
     def launch_missle(self):
@@ -487,10 +483,13 @@ class Player(games.Sprite):
         self.defence.value -= 20
         self.hit_sound.play()
         if self.defence.value <= 0:
+            last_score = Player.score.value
             self.destroy()
+            Player.on_mission = False
+            games.screen.clear()
             games.screen.add(PlayerExplosion(self.x, self.y))
-            games.screen.add(GameOver())
-            Game.running = False
+            gameover = GameOver(last_score)
+            games.screen.add(gameover)
         return True
 
     def spawn_upgrade(self):
@@ -499,11 +498,11 @@ class Player(games.Sprite):
         games.screen.add(new_upgrade)
 
     def spawn_asteroid(self):
-        if Game.score.value < 99:
+        if Player.score.value < 99:
             asteroid_type = Asteroid.TYPE1
-        elif Game.score.value in range(100, 199):
+        elif Player.score.value in range(100, 199):
             asteroid_type = random.choice([Asteroid.TYPE1, Asteroid.TYPE2])
-        elif Game.score.value in range(200, 299):
+        elif Player.score.value in range(200, 299):
             asteroid_type = random.choice([Asteroid.TYPE1, Asteroid.TYPE2, Asteroid.TYPE3])
         else:
             asteroid_type = random.choice([Asteroid.TYPE1, Asteroid.TYPE2, Asteroid.TYPE3, Asteroid.TYPE4])
@@ -627,27 +626,40 @@ class Laser(games.Sprite):
 class GameOver(games.Sprite):
     image = games.load_image("gameover.png", transparent=True)
 
-    def __init__(self):
+    def __init__(self, last_score):
         super(GameOver, self).__init__(image=GameOver.image,
                                        x=games.screen.width / 2,
                                        bottom=0,
                                        dy=3,
                                        is_collideable=False)
         games.mouse.is_visible = True
+        self.hiscore_value = "YOUR SCORE IS " + str(last_score)
 
     def update(self):
         if self.y >= games.screen.width / 2:
             self.dy = 0
             if games.mouse.is_pressed(0):
                 self.destroy()
-                hiscore_value = "YOUR SCORE IS " + str(Game.score.value)
-                hiscore_text = games.Text(value=hiscore_value,
-                                          size=50,
-                                          color=color.red,
-                                          y=games.screen.height/3,
-                                          x=games.screen.width/2,
-                                          is_collideable=False)
+                hiscore_text = games.Message(value=self.hiscore_value,
+                                             size=50,
+                                             color=color.red,
+                                             y=games.screen.height / 3,
+                                             x=games.screen.width / 2,
+                                             after_death=self.name_input,
+                                             lifetime=150,
+                                             is_collideable=False)
                 games.screen.add(hiscore_text)
+
+    def name_input(self):
+        # Name input block missing
+        # self.destroy()
+        # games.screen.remove(GameOver())
+        # game_menu = GameMenu()
+        # games.screen.add(game_menu)
+        self.destroy()
+        del Player.score
+        game_menu = GameMenu()
+        games.screen.add(game_menu)
 
 
 def main():
